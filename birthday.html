@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>芙莉莲的宝箱回忆</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        /* 通用界面样式 */
+        .screen {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+        }
+        
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 密码输入界面 */
+        #password {
+            background-color: #8a2be2;
+            text-align: center;
+        }
+        
+        .password-input-container {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        #password-input {
+            width: 200px;
+            height: 50px;
+            font-size: 24px;
+            text-align: center;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            outline: none;
+        }
+        
+        #password-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        #submit-password {
+            width: 150px;
+            height: 40px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        #submit-password:hover {
+            background-color: #45a049;
+        }
+        
+        /* 开场界面 */
+        #intro {
+            background-color: #8a2be2;
+            text-align: center;
+        }
+        
+        /* 宝箱选择界面 */
+        #selection {
+            background-image: url('background.jpg.png');
+            background-size: cover;
+            background-position: center;
+            padding: 20px;
+        }
+        
+        .treasure-container {
+            position: relative;
+            width: 100%;
+            height: 70vh;
+            margin-top: 15vh;
+            perspective: 1000px;
+        }
+        
+        .treasure {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        
+        .treasure:nth-child(1) {
+            transform: translate(-50%, -50%) rotate(0deg) translateX(150px) rotate(0deg);
+        }
+        
+        .treasure:nth-child(2) {
+            transform: translate(-50%, -50%) rotate(72deg) translateX(150px) rotate(-72deg);
+        }
+        
+        .treasure:nth-child(3) {
+            transform: translate(-50%, -50%) rotate(144deg) translateX(150px) rotate(-144deg);
+        }
+        
+        .treasure:nth-child(4) {
+            transform: translate(-50%, -50%) rotate(216deg) translateX(150px) rotate(-216deg);
+        }
+        
+        .treasure:nth-child(5) {
+            transform: translate(-50%, -50%) rotate(288deg) translateX(150px) rotate(-288deg);
+        }
+        
+        .treasure-box {
+            width: 200px;
+            height: 200px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .treasure:not(.open) .treasure-box {
+            background-image: url('chest_closed.jpg.png');
+        }
+        
+        .treasure.open.strange .treasure-box {
+            background-image: url('chest_strange.jpg.png');
+            opacity: 1;
+            cursor: not-allowed;
+        }
+        
+        .treasure.open:not(.strange) .treasure-box {
+            background-image: url('chest_open.jpg.png');
+            opacity: 1;
+            cursor: not-allowed;
+        }
+        
+
+        
+        /* 剧情场景界面 */
+        #scene {
+            position: relative;
+        }
+        
+        .scene-background {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .character {
+            position: absolute;
+            bottom: 200px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+        
+        .character.visible {
+            opacity: 1;
+        }
+        
+        /* 对话框 */
+        .dialog-box {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-top: 2px solid #fff;
+        }
+        
+        .character-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .dialog-text {
+            font-size: 18px;
+            line-height: 1.5;
+        }
+        
+        .return-button {
+            display: none;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .return-button.visible {
+            display: block;
+        }
+        
+
+        
+        /* 箱子发光效果 */
+        .treasure.open.glow .treasure-box {
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { 
+                box-shadow: 0 0 10px #fff, 0 0 20px #ff0, 0 0 30px #ff0;
+                transform: scale(1);
+            }
+            to { 
+                box-shadow: 0 0 20px #fff, 0 0 30px #ff0, 0 0 40px #ff0, 0 0 50px #ff0;
+                transform: scale(1.05);
+            }
+        }
+        
+        /* 气球对话框特效 */
+        .birthday-balloon {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 20px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #000;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            animation: balloon 3s ease-in-out infinite alternate;
+            display: none;
+        }
+        
+        .birthday-balloon.left {
+            left: 20%;
+            background-color: #98FB98; /* 浅绿色 */
+        }
+        
+        .birthday-balloon.right {
+            right: 20%;
+            background-color: #FFB6C1; /* 粉红色 */
+        }
+        
+        .balloon-text {
+            text-align: center;
+        }
+        
+        @keyframes balloon {
+            from { transform: translateY(-50%) scale(1); }
+            to { transform: translateY(-60%) scale(1.1); }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 480px) {
+            .treasure-box {
+                width: 140px;
+                height: 140px;
+            }
+            
+            .treasure:nth-child(1) {
+                transform: translate(-50%, -50%) rotate(0deg) translateX(100px) rotate(0deg);
+            }
+            
+            .treasure:nth-child(2) {
+                transform: translate(-50%, -50%) rotate(72deg) translateX(100px) rotate(-72deg);
+            }
+            
+            .treasure:nth-child(3) {
+                transform: translate(-50%, -50%) rotate(144deg) translateX(100px) rotate(-144deg);
+            }
+            
+            .treasure:nth-child(4) {
+                transform: translate(-50%, -50%) rotate(216deg) translateX(100px) rotate(-216deg);
+            }
+            
+            .treasure:nth-child(5) {
+                transform: translate(-50%, -50%) rotate(288deg) translateX(100px) rotate(-288deg);
+            }
+            
+
+            
+            .dialog-text {
+                font-size: 16px;
+            }
+            
+            .birthday-text {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- 密码输入界面 -->
+        <div id="password" class="screen active">
+            <h1>请输入密码</h1>
+            <div class="password-input-container">
+                <input type="password" id="password-input" maxlength="4" placeholder="请输入4位数字密码">
+                <button id="submit-password">确认</button>
+                <p id="password-error" style="color: red; margin-top: 20px; display: none;">密码错误，请重试</p>
+            </div>
+        </div>
+        
+        <!-- 开场界面 -->
+        <div id="intro" class="screen">
+            <h1>芙莉莲的宝箱回忆</h1>
+            <p style="font-size: 20px; margin-top: 20px;">你好，我是芙莉莲，和我一起开宝箱吧！</p>
+        </div>
+        
+        <!-- 宝箱选择界面 -->
+        <div id="selection" class="screen">
+            <h2>选择宝箱</h2>
+            <div class="treasure-container">
+                <div class="treasure" data-id="luye">
+                    <div class="treasure-box"></div>
+                </div>
+                <div class="treasure" data-id="leon">
+                    <div class="treasure-box"></div>
+                </div>
+                <div class="treasure" data-id="shajin">
+                    <div class="treasure-box"></div>
+                </div>
+                <div class="treasure" data-id="moyi">
+                    <div class="treasure-box"></div>
+                </div>
+                <div class="treasure" data-id="strange">
+                    <div class="treasure-box"></div>
+                </div>
+            </div>
+            <div class="dialog-box summary-dialog" style="display: none;">
+                <div class="character-name">芙莉莲</div>
+                <div class="dialog-text"></div>
+            </div>
+            <div class="dialog-box end-dialog" style="display: none;">
+                <div class="character-name">芙莉莲</div>
+                <div class="dialog-text">欸！等等！5个宝箱都开启之后，居然触发了新的魔法</div>
+            </div>
+            <div class="birthday-balloon left" style="display: none;">
+                <div class="balloon-text">Sherry祝你生日快乐！</div>
+            </div>
+            <div class="birthday-balloon right" style="display: none;">
+                <div class="balloon-text">Tracy祝你生日快乐</div>
+            </div>
+        </div>
+        
+        <!-- 剧情场景界面 -->
+        <div id="scene" class="screen">
+            <div class="scene-background"></div>
+            <div class="character"></div>
+            <div class="dialog-box">
+                <div class="character-name"></div>
+                <div class="dialog-text"></div>
+                <button class="return-button">返回</button>
+            </div>
+        </div>
+        
+
+        
+
+    </div>
+    
+    <script>
+        // 游戏数据
+        const gameData = {
+            treasures: {
+                luye: {
+                    name: "回忆之箱",
+                    background: "url('luye_background.png')", // 鹿野背景图片
+                    character: "luye_people.png", // 鹿野人物图片
+                    dialogues: ["你好，我是鹿野", "鹿野祝你生日快乐"],
+                    summary: "看来你已经得到鹿野的祝福"
+                },
+                leon: {
+                    name: "勇气之箱",
+                    background: "#0066cc", // 蓝色背景
+                    character: "里昂",
+                    dialogues: ["你好，我是里昂", "里昂祝你生日快乐"],
+                    summary: "看来你已经得到里昂的祝福"
+                },
+                shajin: {
+                    name: "智慧之箱",
+                    background: "#33cc33", // 绿色背景
+                    character: "砂金",
+                    dialogues: ["你好，我是砂金", "砂金祝你生日快乐"],
+                    summary: "看来你已经得到砂金的祝福"
+                },
+                moyi: {
+                    name: "神秘之箱",
+                    background: "#9933cc", // 紫色背景
+                    character: "莫弈",
+                    dialogues: ["你好，我是莫弈", "莫弈祝你生日快乐"],
+                    summary: "看来你已经得到莫弈的祝福"
+                },
+                strange: {
+                    name: "真相之箱",
+                    background: "#333333", // 黑色背景
+                    character: "芙莉莲",
+                    dialogues: ["哈哈哈，你居然也开到了宝箱怪", "算了，不笑你，我把你救出来"],
+                    summary: "来吧，选择下一个"
+                }
+            }
+        };
+        
+        // 游戏状态
+        let gameState = {
+            openedTreasures: [],
+            currentStage: "password",
+            currentTreasure: null,
+            currentDialogueIndex: 0
+        };
+        
+        // 加载游戏状态
+        function loadGameState() {
+            const savedState = localStorage.getItem('frierenGameState');
+            if (savedState) {
+                gameState = JSON.parse(savedState);
+            }
+        }
+        
+        // 保存游戏状态
+        function saveGameState() {
+            localStorage.setItem('frierenGameState', JSON.stringify(gameState));
+        }
+        
+        // 切换屏幕
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+        
+        // 初始化宝箱选择界面
+        function initSelection() {
+            const treasures = document.querySelectorAll('.treasure');
+            treasures.forEach(treasure => {
+                const treasureId = treasure.dataset.id;
+                if (gameState.openedTreasures.includes(treasureId)) {
+                    treasure.classList.add('open');
+                    if (treasureId === 'strange') {
+                        treasure.classList.add('strange');
+                    } else {
+                        treasure.classList.remove('strange');
+                    }
+                    treasure.style.pointerEvents = 'none';
+                } else {
+                    treasure.classList.remove('open', 'strange');
+                    treasure.style.pointerEvents = 'auto';
+                }
+            });
+        }
+        
+        // 进入场景
+        function enterScene(treasureId) {
+            gameState.currentTreasure = treasureId;
+            gameState.currentDialogueIndex = 0;
+            gameState.currentStage = "scene";
+            saveGameState();
+            
+            const treasureData = gameData.treasures[treasureId];
+            
+            // 设置背景
+            const background = document.querySelector('.scene-background');
+            if (treasureData.background.startsWith('url(')) {
+                background.style.backgroundColor = 'transparent';
+                background.style.backgroundImage = treasureData.background;
+                background.style.backgroundSize = 'cover';
+                background.style.backgroundPosition = 'center';
+            } else {
+                background.style.backgroundColor = treasureData.background;
+                background.style.backgroundImage = 'none';
+            }
+            
+            // 设置角色
+            const character = document.querySelector('#scene .character');
+            if (treasureId === 'luye') {
+                character.textContent = '';
+                character.style.backgroundImage = `url('${treasureData.character}')`;
+                character.style.backgroundSize = 'contain';
+                character.style.backgroundRepeat = 'no-repeat';
+                character.style.backgroundPosition = 'center';
+                character.style.width = '600px';
+                character.style.height = '800px';
+                character.style.bottom = '200px';
+            } else {
+                character.textContent = treasureData.character;
+                character.style.backgroundImage = 'none';
+                character.style.width = 'auto';
+                character.style.height = 'auto';
+                character.style.bottom = '200px';
+            }
+            character.classList.remove('visible');
+            setTimeout(() => {
+                character.classList.add('visible');
+            }, 100);
+            
+            // 设置对话框
+            const characterName = document.querySelector('#scene .character-name');
+            const dialogText = document.querySelector('#scene .dialog-text');
+            const returnButton = document.querySelector('#scene .return-button');
+            const dialogBox = document.querySelector('#scene .dialog-box');
+            
+            if (treasureId === 'luye') {
+                characterName.textContent = '鹿野';
+                dialogBox.style.backgroundColor = 'rgba(0, 0, 139, 0.8)'; // 深蓝色对话框
+                dialogBox.style.borderTop = '2px solid #6495ED';
+            } else {
+                characterName.textContent = treasureData.character;
+                dialogBox.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'; // 默认黑色对话框
+                dialogBox.style.borderTop = '2px solid #fff';
+            }
+            
+            dialogText.textContent = treasureData.dialogues[0];
+            returnButton.classList.remove('visible');
+            
+            switchScreen('scene');
+        }
+        
+        // 推进对话
+        function nextDialogue() {
+            if (gameState.currentStage === "scene") {
+                const treasureData = gameData.treasures[gameState.currentTreasure];
+                gameState.currentDialogueIndex++;
+                
+                if (gameState.currentDialogueIndex < treasureData.dialogues.length) {
+                    document.querySelector('#scene .dialog-text').textContent = treasureData.dialogues[gameState.currentDialogueIndex];
+                } else {
+                    document.querySelector('#scene .return-button').classList.add('visible');
+                }
+            } else if (gameState.currentStage === "summary") {
+                gameState.currentStage = "selection";
+                saveGameState();
+                initSelection();
+                switchScreen('selection');
+            } else if (gameState.currentStage === "end") {
+                const endDialog = document.querySelector('.end-dialog');
+                const leftBalloon = document.querySelector('.birthday-balloon.left');
+                const rightBalloon = document.querySelector('.birthday-balloon.right');
+                
+                if (endDialog.style.display === 'block') {
+                    // 关闭结束对话框，显示气球对话框
+                    endDialog.style.display = 'none';
+                    leftBalloon.style.display = 'block';
+                    rightBalloon.style.display = 'block';
+                } else if (leftBalloon.style.display === 'block' || rightBalloon.style.display === 'block') {
+                    // 重置游戏状态
+                    gameState = {
+                        openedTreasures: [],
+                        currentStage: "intro",
+                        currentTreasure: null,
+                        currentDialogueIndex: 0
+                    };
+                    saveGameState();
+                    switchScreen('password');
+                }
+            }
+        }
+        
+        // 返回选择界面
+        function returnToSelection() {
+            if (!gameState.openedTreasures.includes(gameState.currentTreasure)) {
+                gameState.openedTreasures.push(gameState.currentTreasure);
+            }
+            
+            if (gameState.openedTreasures.length === 5) {
+                gameState.currentStage = "end";
+                saveGameState();
+                initSelection();
+                
+                // 为所有打开的宝箱添加发光效果
+                document.querySelectorAll('.treasure.open').forEach(treasure => {
+                    treasure.classList.add('glow');
+                });
+                
+                // 显示结束对话框
+                const endDialog = document.querySelector('.end-dialog');
+                endDialog.style.display = 'block';
+                endDialog.style.backgroundColor = 'rgba(0, 0, 139, 0.8)'; // 深蓝色对话框
+                endDialog.style.borderTop = '2px solid #6495ED';
+                
+                // 禁用宝箱点击
+                document.querySelectorAll('.treasure').forEach(treasure => {
+                    treasure.style.pointerEvents = 'none';
+                });
+                
+                switchScreen('selection');
+            } else {
+                gameState.currentStage = "selection";
+                saveGameState();
+                initSelection();
+                
+                // 显示总结对话框
+                const treasureData = gameData.treasures[gameState.currentTreasure];
+                const summaryDialog = document.querySelector('.summary-dialog');
+                const dialogText = summaryDialog.querySelector('.dialog-text');
+                const characterName = summaryDialog.querySelector('.character-name');
+                
+                characterName.textContent = '芙莉莲'; // 总结阶段说话人是芙莉莲
+                dialogText.textContent = treasureData.summary;
+                summaryDialog.style.display = 'block';
+                summaryDialog.style.backgroundColor = 'rgba(0, 0, 139, 0.8)'; // 深蓝色对话框
+                summaryDialog.style.borderTop = '2px solid #6495ED';
+                
+                // 禁用宝箱点击
+                document.querySelectorAll('.treasure').forEach(treasure => {
+                    treasure.style.pointerEvents = 'none';
+                });
+                
+                switchScreen('selection');
+            }
+        }
+        
+        // 初始化游戏
+        function initGame() {
+            loadGameState();
+            
+            // 密码输入界面事件
+            const passwordInput = document.getElementById('password-input');
+            const submitPassword = document.getElementById('submit-password');
+            const passwordError = document.getElementById('password-error');
+            
+            submitPassword.addEventListener('click', () => {
+                if (passwordInput.value === '0314') {
+                    // 密码正确，进入游戏
+                    passwordError.style.display = 'none';
+                    switchScreen('intro');
+                } else {
+                    // 密码错误，显示提示
+                    passwordError.style.display = 'block';
+                    passwordInput.value = '';
+                }
+            });
+            
+            // 密码输入框回车事件
+            passwordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    submitPassword.click();
+                }
+            });
+            
+            // 开场界面点击事件
+            document.getElementById('intro').addEventListener('click', () => {
+                gameState.currentStage = "selection";
+                saveGameState();
+                initSelection();
+                switchScreen('selection');
+            });
+            
+            // 宝箱点击事件
+            document.querySelectorAll('.treasure').forEach(treasure => {
+                treasure.addEventListener('click', () => {
+                    const treasureId = treasure.dataset.id;
+                    if (!gameState.openedTreasures.includes(treasureId)) {
+                        enterScene(treasureId);
+                    }
+                });
+            });
+            
+            // 选择页面点击事件（用于关闭总结对话框和处理结束对话框）
+            document.getElementById('selection').addEventListener('click', (e) => {
+                const summaryDialog = document.querySelector('.summary-dialog');
+                const endDialog = document.querySelector('.end-dialog');
+                const leftBalloon = document.querySelector('.birthday-balloon.left');
+                const rightBalloon = document.querySelector('.birthday-balloon.right');
+                
+                if (summaryDialog.style.display === 'block') {
+                    summaryDialog.style.display = 'none';
+                    // 重新启用宝箱点击
+                    document.querySelectorAll('.treasure').forEach(treasure => {
+                        if (!gameState.openedTreasures.includes(treasure.dataset.id)) {
+                            treasure.style.pointerEvents = 'auto';
+                        }
+                    });
+                } else if (endDialog.style.display === 'block' || (gameState.currentStage === "end" && (leftBalloon.style.display === 'block' || rightBalloon.style.display === 'block'))) {
+                    // 在end阶段，调用nextDialogue函数处理逻辑
+                    nextDialogue();
+                }
+            });
+            
+            // 场景界面点击事件
+            document.getElementById('scene').addEventListener('click', (e) => {
+                if (!e.target.classList.contains('return-button')) {
+                    nextDialogue();
+                }
+            });
+            
+            // 返回按钮点击事件
+            document.querySelector('.return-button').addEventListener('click', returnToSelection);
+            
+
+            
+
+            
+            // 根据当前状态显示相应界面
+            switch (gameState.currentStage) {
+                case "password":
+                    switchScreen('password');
+                    break;
+                case "intro":
+                    switchScreen('intro');
+                    break;
+                case "selection":
+                    initSelection();
+                    switchScreen('selection');
+                    break;
+                case "scene":
+                    enterScene(gameState.currentTreasure);
+                    break;
+                case "summary":
+                    // 处理旧的summary状态，转换为selection
+                    gameState.currentStage = "selection";
+                    saveGameState();
+                    initSelection();
+                    switchScreen('selection');
+                    break;
+                case "end":
+                    // 处理旧的end状态，显示选择页面并执行End阶段逻辑
+                    gameState.currentStage = "selection";
+                    saveGameState();
+                    initSelection();
+                    
+                    // 为所有打开的宝箱添加发光效果
+                    document.querySelectorAll('.treasure.open').forEach(treasure => {
+                        treasure.classList.add('glow');
+                    });
+                    
+                    // 显示结束对话框
+                    const endDialog = document.querySelector('.end-dialog');
+                    endDialog.style.display = 'block';
+                    endDialog.style.backgroundColor = 'rgba(0, 0, 139, 0.8)'; // 深蓝色对话框
+                    endDialog.style.borderTop = '2px solid #6495ED';
+                    
+                    // 禁用宝箱点击
+                    document.querySelectorAll('.treasure').forEach(treasure => {
+                        treasure.style.pointerEvents = 'none';
+                    });
+                    
+                    switchScreen('selection');
+                    break;
+            }
+        }
+        
+        // 启动游戏
+        initGame();
+    </script>
+</body>
+</html>
